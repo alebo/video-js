@@ -13,7 +13,15 @@ _V_.Tag = _V_.Component.extend({
 			//event.stopPropagation();
 			//return false;
 		});
-
+		
+		this.time = 10;
+		
+		this.player.one("controlsvisible", this.proxy(function() {
+			this.player.triggerEvent(new _V_.Event('tagchange', {tag: this}));
+		}));
+		
+		
+		/*
 		this.on("click", function (event) {
 			//console.log(this.time);
 
@@ -27,6 +35,7 @@ _V_.Tag = _V_.Component.extend({
 			 //video.currentTime = t;
 
 		});
+		*/
 	},
 });
 
@@ -34,7 +43,14 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
 	init: function(player, options) {
 		this._super(player, options);
 
-		this.player.on("controlsvisible", this.proxy(this.updateTags));
+		//this.player.on("controlsvisible", this.proxy(this.updateTags));
+		this.player.on("tagchange", this.proxy(function(e){
+			
+			this.player.tagMoving = e.tag;
+			this.updateTags(e.tag.time / this.player.duration());
+			this.player.tagMoving = false;
+
+		}));
 	},
 
   onMouseMove: function(event){
@@ -60,7 +76,7 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
   },
 
 	updateTags: function(progress) {
-		var handle = this.tag;
+		var handle = this.player.tagMoving;;
 
 		progress = progress || 0;
 
@@ -97,4 +113,14 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
 	  console.log(((progress - handlePercent / 2)  * 100)  + "%");
 	  //handle.el.style.left = _V_.round(barProgress * 100, 2) + "%";
 	}
+});
+
+
+_V_.Player.prototype.extend({
+	addTag: function() {
+		this.controlBar.progressControl.seekBar.addComponent(
+			new _V_.Tag(this)
+		);
+	}
+
 });
