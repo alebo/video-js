@@ -1,0 +1,14 @@
+.vjs-default-skin div.vjs-seek-handle2 {
+  position: absolute;
+  width: 24px; height: 41px; /* Match img pixles */
+  margin-top: -40px;
+  left: 0; top: 0; /*Needed for IE6*/
+
+  /*background: url('video-js.png') 0 -50px;*/
+  background: url('pin_green.png') 0 0;
+  /* CSS Curved Corners. Needed to make shadows curved. * /
+  -moz-border-radius: 0.8em; -webkit-border-radius: 0.8em; border-radius: 0.8em;
+  /* CSS Shadows * /
+  -webkit-box-shadow: 0 2px 4px 0 #000; -moz-box-shadow: 0 2px 4px 0 #000; box-shadow: 0 2px 4px 0 #000;
+  */
+}
