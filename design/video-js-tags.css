@@ -1,4 +1,4 @@
-.vjs-default-skin div.vjs-seek-handle2 {
+.vjs-default-skin div.vjs-tag-handle {
   position: absolute;
   width: 24px; height: 41px; /* Match img pixles */
   margin-top: -40px;
@@ -30,7 +30,7 @@
     width: 100px;
 }
 
-.vjs-seek-handle2:hover .tooltip
+.vjs-tag-handle:hover .tooltip
 {
     visibility: visible;
     z-index: 1000;
