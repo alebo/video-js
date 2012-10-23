@@ -1,32 +1,39 @@
 _V_.Tag = _V_.Component.extend({
     createElement: function() {
-        var className;
+        var className, innerHTML;
 
         if (this.options.draggable) {
             className = "vjs-tag-handle draggable";
         } else {
             className = "vjs-tag-handle undraggable";
         }
+
+        var preview = (this.options.preview) ? this.options.preview : '';
+        innerHTML = "<span class='tooltip'><img src='"+preview+"' width='"+this.player.options.tag.preview.width+"' height='"+this.player.options.tag.preview.height+"' /></span>";
+
         return this._super("div", {
             className: className,
-            innerHTML: "<span class='tooltip'></span>"
+            innerHTML: innerHTML
         });
     },
 
     init: function(player, options) {
         this._super(player, options);
-
         this.tagId = (options.tagId) ? options.tagId : 1;
         this.time = (options.time) ? options.time : 0;
         this.draggable = (options.draggable) ? options.draggable : false;
+        this.preview = (options.preview) ? options.preview : false;
 
-        this.player.one("controlsvisible", this.proxy(this.updateTags));
+        this.player.one("controlsvisible", this.proxy(this.update));
         this.on("mousedown", this.onMouseDown);
         this.on("click", this.onClick);
         this.on("mouseover", this.onMouseOver);
+        this.on("mouseleave", this.onMouseLeave);
     },
 
     onMouseDown: function(event){
+        this.player.currentTime(this.time);
+
         if (this.draggable) {
 
             this.player.tagMoving = this;
@@ -37,10 +44,7 @@ _V_.Tag = _V_.Component.extend({
             _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
             _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
 
-            //this.onMouseMove(event);
-
-            this.player.currentTime(this.time);
-
+        //this.onMouseMove(event);
         } else {
             event.stopPropagation();
         }
@@ -55,7 +59,7 @@ _V_.Tag = _V_.Component.extend({
             _V_.off(document, "mousemove", this.onMouseMove, false);
             _V_.off(document, "mouseup", this.onMouseUp, false);
 
-            this.updateTags();
+            this.update();
         } else {
             event.stopPropagation();
         }
@@ -70,7 +74,13 @@ _V_.Tag = _V_.Component.extend({
         }
 
         this.time = newTime;
-        this.updateTags();
+
+        this.update();
+        this.updatePreview(newTime);
+
+        this.player.triggerEvent(new _V_.Event('tagchange', {
+            tag: this
+        }));
     },
 
     onClick: function(event){
@@ -78,7 +88,16 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseOver: function(event){
-        this.capture();
+        //this.capture();
+        if (!this.player.tagMoving) {
+            var tooltip = this.el.firstChild;
+            tooltip.style.visibility = 'visible';
+        }
+    },
+
+    onMouseLeave: function(event){
+        var tooltip = this.el.firstChild;
+        tooltip.style.visibility = 'hidden';
     },
 
     calculateDistance: function(event){
@@ -99,7 +118,7 @@ _V_.Tag = _V_.Component.extend({
         return Math.max(0, Math.min(1, (event.pageX - boxX) / boxW));
     },
 
-    updateTags: function() {
+    update: function() {
         var handle = this;
         var progress = this.time / this.player.duration();
 
@@ -131,40 +150,56 @@ _V_.Tag = _V_.Component.extend({
         handle.el.style.left = _V_.round((adjustedProgress - tagHandleDiffPercent / 2) * 100, 2) + "%";
 
 
-        //console.log(((progress - handlePercent / 2)  * 100)  + "%");
-
-    //            this.player.triggerEvent(new _V_.Event('tagchange', {
-    //                tag: this
-    //            }));
+    //console.log(((progress - handlePercent / 2)  * 100)  + "%");
 
     },
 
     capture: function() {
         var tooltip = this.el.firstChild;
         var video = this.player.tech.el;
-        var scaleFactor = 0.3;
+        //TODO: use preview options
+        var scaleFactor = 0.5;
 
-        if (!tooltip.innerHTML) {
-            var w = video.videoWidth * scaleFactor;
-            var h = video.videoHeight * scaleFactor;
-            var canvas = document.createElement('canvas');
-            canvas.width  = w;
-            canvas.height = h;
-            var ctx = canvas.getContext('2d');
-            ctx.drawImage(video, 0, 0, w, h);
+        var w = video.videoWidth * scaleFactor;
+        var h = video.videoHeight * scaleFactor;
+        var canvas = document.createElement('canvas');
+        canvas.width  = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, w, h);
 
-            tooltip.innerHTML = '';
-            tooltip.appendChild(canvas);
+        var preview = canvas.toDataURL('image/jpeg');
+        this.preview = preview;
+        tooltip.firstChild.src = preview;
+    },
+
+    updatePreview: function(time) {
+        if (this.player.currentTime() == time) {
+            this.capture();
+        } else {
+            this.player.on("seeked", this.proxy(function() {
+                this.imageValide = false;
+                if (this.player.currentTime() == time) {
+                    this.capture();
+                    this.imageValide = true;
+                    this.triggerEvent(new _V_.Event('imageloaded', {
+                        //tag: this
+                        }));
+
+                    this.player.off(arguments.callee);
+                }
+            }));
         }
     }
 });
 
 _V_.Player.prototype.extend({
-    addTag: function(tagId, time, draggable) {
+    addTag: function(tagId, time, draggable, preview) {
         var options = {};
         options.tagId = tagId;
         options.time = time;
         options.draggable = draggable;
+        options.preview = preview;
 
         if (tagId) {
             if(_V_.tags[tagId]) {
@@ -176,6 +211,15 @@ _V_.Player.prototype.extend({
             }
         } else {
             throw new Error("Tag ID is required.");
+        }
+    },
+
+    editTag: function(tagId, time) {
+        if (_V_.tags[tagId]) {
+            _V_.tags[tagId].time = time;
+            _V_.tags[tagId].update();
+        } else {
+            throw new Error("Tag ID not found.");
         }
     },
 
@@ -193,8 +237,8 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
     init: function(player, options) {
         this._super(player, options);
 
-        //this.player.on("controlsvisible", this.proxy(this.updateTags));
-        /*
+    //this.player.on("controlsvisible", this.proxy(this.updateTags));
+    /*
         this.player.on("tagchange", this.proxy(function(e){
             this.player.tagMoving = e.tag;
             this.updateTags(e.tag.time);
@@ -203,17 +247,17 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
         */
     },
 
-   onMouseDown: function(event){
-    event.preventDefault();
-    _V_.blockTextSelection();
+    onMouseDown: function(event){
+        event.preventDefault();
+        _V_.blockTextSelection();
 
-    _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
-    _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
+        _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
+        _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
 
-    if (!this.player.tagMoving) {
-        this.onMouseMove(event);
+        if (!this.player.tagMoving) {
+            this.onMouseMove(event);
+        }
     }
-  },
 /*
     update: function() {
         this._super();
@@ -224,5 +268,8 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
     }
 */
 });
+
+_V_.options.tag = {};
+_V_.options.tag.preview = {'width' : 200, 'height' : 200};
 
 VideoJS.tags = {};
