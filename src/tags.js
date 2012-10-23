@@ -28,19 +28,28 @@ _V_.Tag = _V_.Component.extend({
 
     onMouseDown: function(event){
         if (this.draggable) {
+
+            this.player.tagMoving = this;
+
             event.preventDefault();
             _V_.blockTextSelection();
 
             _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
             _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
 
-            this.onMouseMove(event);
+            //this.onMouseMove(event);
+
+            this.player.currentTime(this.time);
+
         } else {
             event.stopPropagation();
         }
     },
 
     onMouseUp: function(event) {
+
+        this.player.tagMoving = false;
+
         if (this.draggable) {
             _V_.unblockTextSelection();
             _V_.off(document, "mousemove", this.onMouseMove, false);
@@ -76,7 +85,7 @@ _V_.Tag = _V_.Component.extend({
         var box = this.el.parentNode,
         boxX = _V_.findPosX(box),
         boxW = box.offsetWidth,
-        handle = this.handle;
+        handle = this.player.controlBar.progressControl.seekBar.handle;
 
         if (handle) {
             var handleW = handle.el.offsetWidth;
@@ -101,27 +110,33 @@ _V_.Tag = _V_.Component.extend({
 
         var box = this.el.parentNode,
         boxWidth = box.offsetWidth,
-        handleWidth = handle.el.offsetWidth,
+        handleWidth = this.player.controlBar.progressControl.seekBar.handle.el.offsetWidth,
 
         // The width of the handle in percent of the containing box
         // In IE, widths may not be ready yet causing NaN
         handlePercent = (handleWidth) ? handleWidth / boxWidth : 0,
 
+        tagHandleDiffPercent = (handle.el.offsetWidth - handleWidth) / boxWidth,
+
         // Get the adjusted size of the box, considering that the handle's center never touches the left or right side.
         // There is a margin of half the handle's width on both sides.
-        boxAdjustedPercent = 1;//1 - handlePercent;
+        //boxAdjustedPercent = 1;
+        boxAdjustedPercent = 1 - (handlePercent);
 
         // Adjust the progress that we'll use to set widths to the new adjusted box width
         adjustedProgress = progress * boxAdjustedPercent,
 
         // Move the handle from the left based on the adjected progress
-        handle.el.style.left = ((progress - handlePercent / 2)  * 100)  + "%";//_V_.round(adjustedProgress * 100, 2) + "%";
-        console.log(((progress - handlePercent / 2)  * 100)  + "%");
+        //handle.el.style.left = ((progress - handlePercent / 2)  * 100)  + "%";
+        handle.el.style.left = _V_.round((adjustedProgress - tagHandleDiffPercent / 2) * 100, 2) + "%";
+
+
+        //console.log(((progress - handlePercent / 2)  * 100)  + "%");
 
     //            this.player.triggerEvent(new _V_.Event('tagchange', {
     //                tag: this
     //            }));
-        
+
     },
 
     capture: function() {
@@ -172,6 +187,42 @@ _V_.Player.prototype.extend({
             throw new Error("Tag ID not found.");
         }
     }
+});
+
+_V_.TaggableSeekBar = _V_.SeekBar.extend({
+    init: function(player, options) {
+        this._super(player, options);
+
+        //this.player.on("controlsvisible", this.proxy(this.updateTags));
+        /*
+        this.player.on("tagchange", this.proxy(function(e){
+            this.player.tagMoving = e.tag;
+            this.updateTags(e.tag.time);
+            this.player.tagMoving = false;
+        }));
+        */
+    },
+
+   onMouseDown: function(event){
+    event.preventDefault();
+    _V_.blockTextSelection();
+
+    _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
+    _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
+
+    if (!this.player.tagMoving) {
+        this.onMouseMove(event);
+    }
+  },
+/*
+    update: function() {
+        this._super();
+
+        if (this.player.tagMoving) {
+            this.player.tagMoving.el.style.left = this.handle.el.style.left;
+        }
+    }
+*/
 });
 
 VideoJS.tags = {};
