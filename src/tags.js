@@ -9,7 +9,7 @@ _V_.Tag = _V_.Component.extend({
         }
 
         var preview = (this.options.preview) ? this.options.preview : '';
-        innerHTML = "<span class='tooltip'><img src='"+preview+"' width='"+this.player.options.tag.preview.width+"' height='"+this.player.options.tag.preview.height+"' /></span>";
+        innerHTML = "<span class='tooltip'><img src='"+preview+"' style='max-width:"+this.player.options.tag.preview.width+"px; max-height="+this.player.options.tag.preview.height+"px;' /></span>";
 
         return this._super("div", {
             className: className,
@@ -114,7 +114,10 @@ _V_.Tag = _V_.Component.extend({
         this.player.currentTime(this.time);
 
         this.updateTag();
-        this.updatePreview();
+
+        if (this.draggable) {
+            this.updatePreview();
+        }
 
         this.player.triggerEvent(new _V_.Event('tagchange', {
             tag: this
