@@ -165,7 +165,34 @@ _V_.Tag = _V_.Component.extend({
 
     capture: function() {
         var tooltip = this.el.firstChild;
-        var video = this.player.tech.el;
+        
+        var preview = this.player.capture();
+
+        this.preview = preview;
+        this.previewValid = true;
+        tooltip.firstChild.src = preview;
+
+        this.triggerEvent(new _V_.Event('previewloaded', {}));
+    },
+
+    updatePreview: function() {
+        this.previewValid = false;
+        //        if (this.player.currentTime() == this.time) {
+        //            this.capture();
+        //        } else {
+        this.player.on("seeked", this.proxy(function() {
+                
+            if (this.player.currentTime() == this.time) {
+                this.capture();
+                this.player.off(arguments.callee);
+            }
+        }));
+    //        }
+    }
+});
+_V_.html5.prototype.extend({
+    capture: function() {
+        var video = this.el;
 
         var newWidth, newHeight, x = 0, y = 0;
 
@@ -194,26 +221,8 @@ _V_.Tag = _V_.Component.extend({
         ctx.drawImage(video, x, y, newWidth, newHeight);
 
         var preview = canvas.toDataURL('image/jpeg');
-        this.preview = preview;
-        this.previewValid = true;
-        tooltip.firstChild.src = preview;
 
-        this.triggerEvent(new _V_.Event('previewloaded', {}));
-    },
-
-    updatePreview: function() {
-        this.previewValid = false;
-        //        if (this.player.currentTime() == this.time) {
-        //            this.capture();
-        //        } else {
-        this.player.on("seeked", this.proxy(function() {
-                
-            if (this.player.currentTime() == this.time) {
-                this.capture();
-                this.player.off(arguments.callee);
-            }
-        }));
-    //        }
+        return preview;
     }
 });
 
@@ -254,6 +263,10 @@ _V_.Player.prototype.extend({
         } else {
             throw new Error("Tag ID not found.");
         }
+    },
+
+    capture: function() {
+        return this.techGet('capture');
     }
 });
 
