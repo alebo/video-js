@@ -19,16 +19,19 @@ _V_.Tag = _V_.Component.extend({
 
     init: function(player, options) {
         this._super(player, options);
+
         this.tagId = (options.tagId) ? options.tagId : 1;
         this.time = (options.time) ? options.time : 0;
         this.draggable = (options.draggable) ? options.draggable : false;
         this.preview = (options.preview) ? options.preview : false;
+        if (this.preview) {
+            this.previewValid = true;
+        }
 
         this.player.one("controlsvisible", this.proxy(this.update));
         this.on("mousedown", this.onMouseDown);
-        this.on("click", this.onClick);
         this.on("mouseover", this.onMouseOver);
-        this.on("mouseleave", this.onMouseLeave);
+        this.on("mouseout", this.onMouseOut);
     },
 
     onMouseDown: function(event){
@@ -51,7 +54,6 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseUp: function(event) {
-
         this.player.tagMoving = false;
 
         if (this.draggable) {
@@ -75,27 +77,17 @@ _V_.Tag = _V_.Component.extend({
 
         this.time = newTime;
 
-        this.update();
-        this.updatePreview(newTime);
-
-        this.player.triggerEvent(new _V_.Event('tagchange', {
-            tag: this
-        }));
-    },
-
-    onClick: function(event){
-    //this.player.currentTime(this.time);
+        this.updateTag();
     },
 
     onMouseOver: function(event){
-        //this.capture();
         if (!this.player.tagMoving) {
             var tooltip = this.el.firstChild;
             tooltip.style.visibility = 'visible';
         }
     },
 
-    onMouseLeave: function(event){
+    onMouseOut: function(event){
         var tooltip = this.el.firstChild;
         tooltip.style.visibility = 'hidden';
     },
@@ -119,7 +111,23 @@ _V_.Tag = _V_.Component.extend({
     },
 
     update: function() {
+        this.player.currentTime(this.time);
+
+        this.updateTag();
+        this.updatePreview();
+
+        this.player.triggerEvent(new _V_.Event('tagchange', {
+            tag: this
+        }));
+    },
+    
+    updateTag: function() {
         var handle = this;
+
+        if (this.time > this.player.duration()) {
+            this.time = this.player.duration();
+        }
+
         var progress = this.time / this.player.duration();
 
         // Protect against no duration and other division issues
@@ -149,47 +157,60 @@ _V_.Tag = _V_.Component.extend({
         //handle.el.style.left = ((progress - handlePercent / 2)  * 100)  + "%";
         handle.el.style.left = _V_.round((adjustedProgress - tagHandleDiffPercent / 2) * 100, 2) + "%";
 
-
     //console.log(((progress - handlePercent / 2)  * 100)  + "%");
-
     },
 
     capture: function() {
         var tooltip = this.el.firstChild;
         var video = this.player.tech.el;
-        //TODO: use preview options
-        var scaleFactor = 0.5;
 
-        var w = video.videoWidth * scaleFactor;
-        var h = video.videoHeight * scaleFactor;
+        var newWidth, newHeight, x = 0, y = 0;
+
+        var previewWidth  = this.player.options.tag.preview.width;
+        var previewHeight  = this.player.options.tag.preview.height;
+        var videoWidth = video.videoWidth;
+        var videoHeight = video.videoHeight;
+
+        if (videoWidth <= previewWidth && videoHeight <= previewHeight) {
+            newWidth = videoWidth;
+            newHeight = videoHeight;
+        } else if (videoWidth / previewWidth > videoHeight / previewHeight) {
+            newWidth = previewWidth;
+            newHeight = Math.round(videoHeight * previewWidth / videoWidth);
+            y = (previewHeight - newHeight) / 2;
+        } else {
+            newWidth = Math.round(videoWidth * previewHeight / videoHeight);
+            newHeight = previewHeight;
+            x = (previewWidth - newWidth) / 2;
+        }
+
         var canvas = document.createElement('canvas');
-        canvas.width  = w;
-        canvas.height = h;
+        canvas.width  = previewWidth;
+        canvas.height = previewHeight;
         var ctx = canvas.getContext('2d');
-        ctx.drawImage(video, 0, 0, w, h);
+        ctx.drawImage(video, x, y, newWidth, newHeight);
 
         var preview = canvas.toDataURL('image/jpeg');
         this.preview = preview;
+        this.previewValid = true;
         tooltip.firstChild.src = preview;
+
+        this.triggerEvent(new _V_.Event('previewloaded', {}));
     },
 
-    updatePreview: function(time) {
-        if (this.player.currentTime() == time) {
-            this.capture();
-        } else {
-            this.player.on("seeked", this.proxy(function() {
-                this.imageValide = false;
-                if (this.player.currentTime() == time) {
-                    this.capture();
-                    this.imageValide = true;
-                    this.triggerEvent(new _V_.Event('imageloaded', {
-                        //tag: this
-                        }));
-
-                    this.player.off(arguments.callee);
-                }
-            }));
-        }
+    updatePreview: function() {
+        this.previewValid = false;
+        //        if (this.player.currentTime() == this.time) {
+        //            this.capture();
+        //        } else {
+        this.player.on("seeked", this.proxy(function() {
+                
+            if (this.player.currentTime() == this.time) {
+                this.capture();
+                this.player.off(arguments.callee);
+            }
+        }));
+    //        }
     }
 });
 
@@ -270,6 +291,9 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
 });
 
 _V_.options.tag = {};
-_V_.options.tag.preview = {'width' : 200, 'height' : 200};
+_V_.options.tag.preview = {
+    'width' : 200,
+    'height' : 150
+};
 
 VideoJS.tags = {};
