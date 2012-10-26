@@ -9,7 +9,13 @@ _V_.Tag = _V_.Component.extend({
         }
 
         var preview = (this.options.preview) ? this.options.preview : '';
-        innerHTML = "<span class='tooltip'><img src='"+preview+"' style='max-width:"+this.player.options.tag.preview.width+"px; max-height="+this.player.options.tag.preview.height+"px;' /></span>";
+        var previewWidth = this.player.options.tag.preview.width;
+        var previewHeight = this.player.options.tag.preview.height;
+        var previewLeft = previewWidth / 2 - 12;
+
+        innerHTML = "<span class='tooltip' style='top:-" + previewHeight + "px; left:-" + previewLeft + "px;'>" +
+                    "<img src='" + preview + "' style='max-width:" + previewWidth + "px; max-height=" + previewHeight + "px;' />" +
+                    "</span>";
 
         return this._super("div", {
             className: className,
