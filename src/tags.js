@@ -117,11 +117,10 @@ _V_.Tag = _V_.Component.extend({
     },
 
     update: function() {
-        this.player.currentTime(this.time);
-
         this.updateTag();
 
         if (this.draggable) {
+            this.player.currentTime(this.time);
             this.updatePreview();
         }
 
