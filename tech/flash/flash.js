@@ -210,8 +210,6 @@ _V_.flash = _V_.PlaybackTech.extend({
 
   play: function(){ this.el.vjs_play(); },
   pause: function(){ this.el.vjs_pause(); },
-  capture: function(){ return this.el.vjs_capture(); },
-
   src: function(src){
     // Make sure source URL is abosolute.
     src = _V_.getAbsoluteURL(src);

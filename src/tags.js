@@ -187,7 +187,8 @@ _V_.Tag = _V_.Component.extend({
         //        } else {
         this.player.on("seeked", this.proxy(function() {
                 
-            if (this.player.currentTime() == this.time) {
+            //if (this.player.currentTime() == this.time) {
+            if (5 > Math.abs(this.player.currentTime() - this.time)) {
                 this.capture();
                 this.player.off(arguments.callee);
             }
@@ -195,6 +196,7 @@ _V_.Tag = _V_.Component.extend({
     //        }
     }
 });
+
 _V_.html5.prototype.extend({
     capture: function() {
         var video = this.el;
@@ -227,6 +229,13 @@ _V_.html5.prototype.extend({
 
         var preview = canvas.toDataURL('image/jpeg');
 
+        return preview;
+    }
+});
+
+_V_.flash.prototype.extend({
+    capture: function() {
+        var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture();
         return preview;
     }
 });
