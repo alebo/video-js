@@ -9,13 +9,15 @@ _V_.Tag = _V_.Component.extend({
         }
 
         var preview = (this.options.preview) ? this.options.preview : '';
-        var previewWidth = this.player.options.tag.preview.width;
-        var previewHeight = this.player.options.tag.preview.height;
-        var previewLeft = previewWidth / 2 - 12;
+        var previewWidthOpt = this.player.options.tag.preview.width;
+        var previewHeightOpt = this.player.options.tag.preview.height;
+        var previewSize = this.calculatePreview(previewWidthOpt, previewHeightOpt);
+        var previewTop = previewSize[1] + 5;
+        var previewLeft = previewSize[0] / 2 - 12;
 
-        innerHTML = "<span class='tooltip' style='top:-" + previewHeight + "px; left:-" + previewLeft + "px;'>" +
-                    "<img src='" + preview + "' style='max-width:" + previewWidth + "px; max-height=" + previewHeight + "px;' />" +
-                    "</span>";
+        innerHTML = "<span class='tooltip' style='top:-" + previewTop + "px; left:-" + previewLeft + "px;'>" +
+        "<img src='" + preview + "' style='max-width:" + previewSize[0] + "px; max-height=" + previewSize[1] + "px;' />" +
+        "</span>";
 
         return this._super("div", {
             className: className,
@@ -32,6 +34,11 @@ _V_.Tag = _V_.Component.extend({
         this.preview = (options.preview) ? options.preview : false;
         if (this.preview) {
             this.previewValid = true;
+        }
+        var previewSize = this.calculatePreview(this.player.options.tag.preview.width, this.player.options.tag.preview.height);
+        if (previewSize) {
+            this.previewWidth = previewSize[0];
+            this.previewHeight = previewSize[1];
         }
 
         this.player.one("controlsvisible", this.proxy(this.update));
@@ -170,8 +177,8 @@ _V_.Tag = _V_.Component.extend({
 
     capture: function() {
         var tooltip = this.el.firstChild;
-        
-        var preview = this.player.capture();
+
+        var preview = this.player.capture([this.previewWidth, this.previewHeight]);
 
         this.preview = preview;
         this.previewValid = true;
@@ -194,19 +201,13 @@ _V_.Tag = _V_.Component.extend({
             }
         }));
     //        }
-    }
-});
+    },
+    
+    calculatePreview: function(previewWidth, previewHeight){
+        var newWidth, newHeight;
 
-_V_.html5.prototype.extend({
-    capture: function() {
-        var video = this.el;
-
-        var newWidth, newHeight, x = 0, y = 0;
-
-        var previewWidth  = this.player.options.tag.preview.width;
-        var previewHeight  = this.player.options.tag.preview.height;
-        var videoWidth = video.videoWidth;
-        var videoHeight = video.videoHeight;
+        var videoWidth = this.player.options.width;
+        var videoHeight = this.player.options.height;
 
         if (videoWidth <= previewWidth && videoHeight <= previewHeight) {
             newWidth = videoWidth;
@@ -214,18 +215,26 @@ _V_.html5.prototype.extend({
         } else if (videoWidth / previewWidth > videoHeight / previewHeight) {
             newWidth = previewWidth;
             newHeight = Math.round(videoHeight * previewWidth / videoWidth);
-            y = (previewHeight - newHeight) / 2;
         } else {
             newWidth = Math.round(videoWidth * previewHeight / videoHeight);
             newHeight = previewHeight;
-            x = (previewWidth - newWidth) / 2;
         }
 
+        return [newWidth, newHeight];
+    }
+});
+
+_V_.html5.prototype.extend({
+    capture: function(size) {
+        var video = this.el;
+
+        var width = size[0], height = size[1];
+
         var canvas = document.createElement('canvas');
-        canvas.width  = previewWidth;
-        canvas.height = previewHeight;
+        canvas.width  = width;
+        canvas.height = height;
         var ctx = canvas.getContext('2d');
-        ctx.drawImage(video, x, y, newWidth, newHeight);
+        ctx.drawImage(video, 0, 0, width, height);
 
         var preview = canvas.toDataURL('image/jpeg');
 
@@ -234,7 +243,7 @@ _V_.html5.prototype.extend({
 });
 
 _V_.flash.prototype.extend({
-    capture: function() {
+    capture: function(size) {
         var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture();
         return preview;
     }
@@ -279,8 +288,26 @@ _V_.Player.prototype.extend({
         }
     },
 
-    capture: function() {
-        return this.techGet('capture');
+    capture: function(size) {
+        return this.techCallGet('capture', size);
+    },
+
+    // Pass values to the playback tech
+    techCallGet: function(method, arg){
+        // If it's not ready yet, call method when it is
+        if (!this.tech.isReady) {
+            this.tech.ready(function(){
+                return this[method](arg);
+            });
+        // Otherwise call method now
+        } else {
+            try {
+                return this.tech[method](arg);
+            } catch(e) {
+                _V_.log(e);
+            }
+        }
+        return;
     }
 });
 
