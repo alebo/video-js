@@ -206,8 +206,8 @@ _V_.Tag = _V_.Component.extend({
     calculatePreview: function(previewWidth, previewHeight){
         var newWidth, newHeight;
 
-        var videoWidth = this.player.options.width;
-        var videoHeight = this.player.options.height;
+        var videoWidth = this.player.getVideoWidth();
+        var videoHeight = this.player.getVideoHeight();
 
         if (videoWidth <= previewWidth && videoHeight <= previewHeight) {
             newWidth = videoWidth;
@@ -239,13 +239,29 @@ _V_.html5.prototype.extend({
         var preview = canvas.toDataURL('image/jpeg');
 
         return preview;
+    },
+
+    getVideoWidth: function() {
+        return this.el.videoWidth;
+    },
+
+    getVideoHeight: function() {
+        return this.el.videoHeight;
     }
 });
 
 _V_.flash.prototype.extend({
     capture: function(size) {
-        var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture();
+        var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture(size[0], size[1]);
         return preview;
+    },
+
+    getVideoWidth: function() {
+        return this.el.vjs_getProperty('videoWidth');
+    },
+
+    getVideoHeight: function() {
+        return this.el.vjs_getProperty('videoHeight');
     }
 });
 
@@ -292,21 +308,29 @@ _V_.Player.prototype.extend({
         return this.techCallGet('capture', size);
     },
 
-    // Pass values to the playback tech
+    getVideoWidth: function() {
+        return this.techGet('getVideoWidth');
+    },
+
+    getVideoHeight: function() {
+        return this.techGet('getVideoHeight');
+    },
+
     techCallGet: function(method, arg){
-        // If it's not ready yet, call method when it is
-        if (!this.tech.isReady) {
-            this.tech.ready(function(){
-                return this[method](arg);
-            });
-        // Otherwise call method now
-        } else {
-            try {
-                return this.tech[method](arg);
-            } catch(e) {
+        if (this.tech.isReady) {
+          try {
+            return this.tech[method](arg);
+          } catch(e) {
+              // When a method isn't available on the object it throws a TypeError
+              if (e.name == "TypeError") {
+                _V_.log("Video.js: " + method + " unavailable on "+this.techName+" playback technology element.", e);
+                this.tech.isReady = false;
+              } else {
                 _V_.log(e);
-            }
+              }
+          }
         }
+
         return;
     }
 });
