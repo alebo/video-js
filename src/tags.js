@@ -32,16 +32,13 @@ _V_.Tag = _V_.Component.extend({
         this.time = (options.time) ? options.time : 0;
         this.draggable = (options.draggable) ? options.draggable : false;
         this.preview = (options.preview) ? options.preview : false;
-        if (this.preview) {
-            this.previewValid = true;
-        }
+
         var previewSize = this.calculatePreview(this.player.options.tag.preview.width, this.player.options.tag.preview.height);
         if (previewSize) {
             this.previewWidth = previewSize[0];
             this.previewHeight = previewSize[1];
         }
 
-        //this.player.one("controlsvisible", this.proxy(this.update));
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
         this.on("mouseout", this.onMouseOut);
@@ -51,7 +48,6 @@ _V_.Tag = _V_.Component.extend({
         this.player.currentTime(this.time);
 
         if (this.draggable) {
-
             this.player.tagMoving = this;
 
             event.preventDefault();
@@ -60,7 +56,6 @@ _V_.Tag = _V_.Component.extend({
             _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
             _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
 
-        //this.onMouseMove(event);
         } else {
             event.stopPropagation();
         }
@@ -124,17 +119,31 @@ _V_.Tag = _V_.Component.extend({
     },
 
     update: function() {
+        this.player.triggerEvent(new _V_.Event('tagchanging', {
+            tag: this
+        }));
+
         this.updateTag();
 
         if (this.draggable) {
             this.player.currentTime(this.time);
             this.player.pause();
-            this.updatePreview();
-        }
+            this.updatePreview(
+                this.proxy(function(preview) {
+                    var tooltip = this.el.firstChild;
+                    this.preview = preview;
+                    tooltip.firstChild.src = preview;
 
-        this.player.triggerEvent(new _V_.Event('tagchange', {
-            tag: this
-        }));
+                    this.player.triggerEvent(new _V_.Event('tagchanged', {
+                        tag: this
+                    }));
+                })
+            );
+        } else {
+            this.player.triggerEvent(new _V_.Event('tagchanged', {
+                tag: this
+            }));
+        }
     },
     
     updateTag: function() {
@@ -176,33 +185,20 @@ _V_.Tag = _V_.Component.extend({
     //console.log(((progress - handlePercent / 2)  * 100)  + "%");
     },
 
-    capture: function() {
-        var tooltip = this.el.firstChild;
+    updatePreview: function(callback) {
+        var seekedCallback = this.proxy(function() {
+            if (this.isTimeFound()) {
+                this.player.capture([this.previewWidth, this.previewHeight], callback);
+                this.player.off("seeked", arguments.callee);
+            }
+        });
 
-        var preview = this.player.capture([this.previewWidth, this.previewHeight]);
+        this.player.on("seeked", seekedCallback);
 
-        this.preview = preview;
-        this.previewValid = true;
-        tooltip.firstChild.src = preview;
-
-        this.triggerEvent(new _V_.Event('previewloaded', {}));
-    },
-
-    updatePreview: function() {
-        this.previewValid = false;
-
-        //if (this.player.currentTime() == this.time) {
-        //    var me = this;
-        //    setTimeout(function (){me.capture();}, 1000);
-        //} else {
-            this.player.on("seeked", this.proxy(function() {
-                //if (this.player.currentTime() == this.time) {
-                if (5 > Math.abs(this.player.currentTime() - this.time)) {
-                    this.capture();
-                    this.player.off("seeked", arguments.callee);
-                }
-            }));
-       //}
+        if (!this.player.techGet('seeking') && this.isTimeFound()) {
+            this.player.capture([this.previewWidth, this.previewHeight], callback);
+            this.player.off("seeked", seekedCallback);
+        }
     },
     
     calculatePreview: function(previewWidth, previewHeight){
@@ -223,11 +219,18 @@ _V_.Tag = _V_.Component.extend({
         }
 
         return [newWidth, newHeight];
+    },
+
+    isTimeFound: function(){
+        return (0.01 > Math.abs(this.player.currentTime() - this.time));
     }
 });
 
 _V_.html5.prototype.extend({
-    capture: function(size) {
+    capture: function(arguments) {
+        var size = arguments[0];
+        var callback = arguments[1];
+
         var video = this.el;
 
         var width = size[0], height = size[1];
@@ -240,7 +243,7 @@ _V_.html5.prototype.extend({
 
         var preview = canvas.toDataURL('image/jpeg');
 
-        return preview;
+        callback.call(this, preview);
     },
 
     getVideoWidth: function() {
@@ -253,9 +256,18 @@ _V_.html5.prototype.extend({
 });
 
 _V_.flash.prototype.extend({
-    capture: function(size) {
-        var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture(size[0], size[1]);
-        return preview;
+    capture: function(arguments) {
+        var size = arguments[0];
+        var callback = arguments[1];
+
+        setTimeout(
+            this.proxy(function() {
+                var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture(size[0], size[1]);
+                callback.call(this, preview);
+            }),
+            1000
+        );
+
     },
 
     getVideoWidth: function() {
@@ -283,7 +295,7 @@ _V_.Player.prototype.extend({
                     new _V_.Tag(this, options)
                     );
                 _V_.tags[tagId].update();
-                //this.controlBar.fadeIn();
+                this.controlBar.fadeIn();
                 return _V_.tags[tagId];
             }
         } else {
@@ -295,6 +307,7 @@ _V_.Player.prototype.extend({
         if (_V_.tags[tagId]) {
             _V_.tags[tagId].time = time;
             _V_.tags[tagId].update();
+            this.controlBar.fadeIn();
         } else {
             throw new Error("Tag ID not found.");
         }
@@ -309,8 +322,8 @@ _V_.Player.prototype.extend({
         }
     },
 
-    capture: function(size) {
-        return this.techCallGet('capture', size);
+    capture: function(size, callback) {
+        this.techCall('capture', [size, callback]);
     },
 
     getVideoWidth: function() {
@@ -319,24 +332,6 @@ _V_.Player.prototype.extend({
 
     getVideoHeight: function() {
         return this.techGet('getVideoHeight');
-    },
-
-    techCallGet: function(method, arg){
-        if (this.tech.isReady) {
-          try {
-            return this.tech[method](arg);
-          } catch(e) {
-              // When a method isn't available on the object it throws a TypeError
-              if (e.name == "TypeError") {
-                _V_.log("Video.js: " + method + " unavailable on "+this.techName+" playback technology element.", e);
-                this.tech.isReady = false;
-              } else {
-                _V_.log(e);
-              }
-          }
-        }
-
-        return;
     }
 });
 
