@@ -41,7 +41,7 @@ _V_.Tag = _V_.Component.extend({
             this.previewHeight = previewSize[1];
         }
 
-        this.player.one("controlsvisible", this.proxy(this.update));
+        //this.player.one("controlsvisible", this.proxy(this.update));
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
         this.on("mouseout", this.onMouseOut);
@@ -128,6 +128,7 @@ _V_.Tag = _V_.Component.extend({
 
         if (this.draggable) {
             this.player.currentTime(this.time);
+            this.player.pause();
             this.updatePreview();
         }
 
@@ -189,18 +190,19 @@ _V_.Tag = _V_.Component.extend({
 
     updatePreview: function() {
         this.previewValid = false;
-        //        if (this.player.currentTime() == this.time) {
-        //            this.capture();
-        //        } else {
-        this.player.on("seeked", this.proxy(function() {
-                
-            //if (this.player.currentTime() == this.time) {
-            if (5 > Math.abs(this.player.currentTime() - this.time)) {
-                this.capture();
-                this.player.off(arguments.callee);
-            }
-        }));
-    //        }
+
+        //if (this.player.currentTime() == this.time) {
+        //    var me = this;
+        //    setTimeout(function (){me.capture();}, 1000);
+        //} else {
+            this.player.on("seeked", this.proxy(function() {
+                //if (this.player.currentTime() == this.time) {
+                if (5 > Math.abs(this.player.currentTime() - this.time)) {
+                    this.capture();
+                    this.player.off("seeked", arguments.callee);
+                }
+            }));
+       //}
     },
     
     calculatePreview: function(previewWidth, previewHeight){
@@ -277,9 +279,12 @@ _V_.Player.prototype.extend({
             if(_V_.tags[tagId]) {
                 return _V_.tags[tagId];
             } else {
-                return _V_.tags[tagId] = this.controlBar.progressControl.seekBar.addComponent(
+                _V_.tags[tagId] = this.controlBar.progressControl.seekBar.addComponent(
                     new _V_.Tag(this, options)
                     );
+                _V_.tags[tagId].update();
+                //this.controlBar.fadeIn();
+                return _V_.tags[tagId];
             }
         } else {
             throw new Error("Tag ID is required.");
