@@ -295,7 +295,7 @@ _V_.Player.prototype.extend({
                     new _V_.Tag(this, options)
                     );
                 _V_.tags[tagId].update();
-                this.controlBar.fadeIn();
+                if (_V_.tags[tagId].draggable) this.controlBar.fadeIn();
                 return _V_.tags[tagId];
             }
         } else {
@@ -307,7 +307,7 @@ _V_.Player.prototype.extend({
         if (_V_.tags[tagId]) {
             _V_.tags[tagId].time = time;
             _V_.tags[tagId].update();
-            this.controlBar.fadeIn();
+            if (_V_.tags[tagId].draggable) this.controlBar.fadeIn();
         } else {
             throw new Error("Tag ID not found.");
         }
@@ -327,11 +327,31 @@ _V_.Player.prototype.extend({
     },
 
     getVideoWidth: function() {
-        return this.techGet('getVideoWidth');
+        var techWidth = this.techGet('getVideoWidth');
+        if (techWidth) {
+            this.setVideoWidth(techWidth);
+            return techWidth;
+        } else {
+            return this.videoWidth;
+        }
     },
 
     getVideoHeight: function() {
-        return this.techGet('getVideoHeight');
+        var techHeight = this.techGet('getVideoHeight');
+        if (techHeight) {
+            this.setVideoHeight(techHeight);
+            return techHeight;
+        } else {
+            return this.videoHeight;
+        }
+    },
+    
+    setVideoWidth: function(width) {
+        this.videoWidth = width;
+    },
+
+    setVideoHeight: function(height) {
+        this.videoHeight = height;
     }
 });
 
