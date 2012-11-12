@@ -44,6 +44,7 @@ _V_.Tag = _V_.Component.extend({
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
         this.on("mouseout", this.onMouseOut);
+        this.on("dblclick", this.onDblClick);
     },
 
     onMouseDown: function(event){
@@ -100,6 +101,12 @@ _V_.Tag = _V_.Component.extend({
     onMouseOut: function(event){
         var tooltip = this.el.firstChild;
         tooltip.style.visibility = 'hidden';
+    },
+
+    onDblClick: function(event){
+        this.player.triggerEvent(new _V_.Event('tagdblclick', {
+            tag: this
+        }));
     },
 
     calculateDistance: function(event){
