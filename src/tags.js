@@ -39,6 +39,8 @@ _V_.Tag = _V_.Component.extend({
             this.previewHeight = previewSize[1];
         }
 
+        this.player.on("controlsvisible", this.proxy(this.updateTag)); //fullscreen position bug
+        
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
         this.on("mouseout", this.onMouseOut);
