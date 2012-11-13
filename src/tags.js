@@ -400,6 +400,35 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
 */
 });
 
+_V_.PosterImageExt = _V_.PosterImage.extend({
+  createElement: function(){
+    var image = _V_.createElement("img", {
+      className: "vjs-poster-ext",
+      src: this.player.options.poster,
+
+      // Don't want poster to be tabbable.
+      tabIndex: -1
+    });
+
+    var playerWidth = this.player.el.width;
+    var playerHeight = this.player.el.height;
+
+    //image.style.display = "none";
+    image.onload = function(){
+        if (playerWidth <= this.width && playerHeight <= this.height) {
+            this.className = this.className + " maxheight-maxwidth";
+        } else if (playerWidth / this.width > playerHeight / this.height) {
+            this.className = this.className + " maxwidth-height";
+        } else {
+            this.className = this.className + " maxheight-width";
+        }
+        //this.style.display = "block";
+    };
+
+    return image;
+  }
+});
+
 _V_.options.tag = {};
 _V_.options.tag.preview = {
     'width' : 200,
