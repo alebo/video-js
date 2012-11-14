@@ -404,7 +404,7 @@ _V_.PosterImageExt = _V_.PosterImage.extend({
   createElement: function(){
     var image = _V_.createElement("img", {
       className: "vjs-poster-ext",
-      src: this.player.options.poster,
+      /*src: this.player.options.poster,*/
 
       // Don't want poster to be tabbable.
       tabIndex: -1
@@ -425,6 +425,7 @@ _V_.PosterImageExt = _V_.PosterImage.extend({
         //this.style.display = "block";
     };
 
+    image.src = this.player.options.poster; //You need to assign onload before setting the source
     return image;
   }
 });

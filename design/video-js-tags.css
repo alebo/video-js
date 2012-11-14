@@ -47,5 +47,5 @@
 }
 
 .maxheight-maxwidth { max-height: 100%; max-width: 100%;}
-.maxheight-width { max-height: 100%; width: 100%;}
-.maxwidth-height { max-width: 100%; height: 100%;}
+.maxheight-width { max-height: 100%; width: 100%; height: auto;}
+.maxwidth-height { max-width: 100%; height: 100%; width: auto;}
