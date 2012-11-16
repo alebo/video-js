@@ -47,6 +47,10 @@ _V_.Tag = _V_.Component.extend({
         this.on("dblclick", this.onDblClick);
     },
 
+    remove: function(){
+        this.player.off("controlsvisible", this.proxy(this.updateTag, this.id));
+    },
+
     onMouseDown: function(event){
         this.player.currentTime(this.time);
 
@@ -328,6 +332,7 @@ _V_.Player.prototype.extend({
 
     removeTag: function(tagId) {
         if (_V_.tags[tagId]) {
+            _V_.tags[tagId].remove();
             this.controlBar.progressControl.seekBar.removeComponent(_V_.tags[tagId]);
             delete _V_.tags[tagId];
         } else {
