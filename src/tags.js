@@ -104,9 +104,13 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onDblClick: function(event){
-        this.player.triggerEvent(new _V_.Event('tagdblclick', {
-            tag: this
-        }));
+        if (this.draggable) {
+            this.player.triggerEvent(new _V_.Event('tagdblclick', {
+                tag: this
+            }));
+        } else {
+            event.stopPropagation();
+        }
     },
 
     calculateDistance: function(event){
