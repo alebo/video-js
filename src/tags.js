@@ -40,7 +40,7 @@ _V_.Tag = _V_.Component.extend({
         }
 
         this.player.on("controlsvisible", this.proxy(this.updateTag)); //fullscreen position bug
-        
+
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
         this.on("mouseout", this.onMouseOut);
@@ -83,6 +83,7 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseMove: function(event){
+
         var newTime = this.calculateDistance(event) * this.player.duration();
 
         var bufferedTime = this.player.buffered().end(0);
@@ -162,7 +163,7 @@ _V_.Tag = _V_.Component.extend({
             }));
         }
     },
-    
+
     updateTag: function() {
         var handle = this;
 
@@ -206,18 +207,22 @@ _V_.Tag = _V_.Component.extend({
         var seekedCallback = this.proxy(function() {
             if (this.isTimeFound()) {
                 this.player.capture([this.previewWidth, this.previewHeight], callback);
-                this.player.off("seeked", arguments.callee);
+                //this.player.off("seeked", arguments.callee);
+                clearInterval(this.recheckTimeout);
+                this.player.trigger("timeupdate");
             }
         });
 
-        this.player.on("seeked", seekedCallback);
+        //this.player.on("seeked", seekedCallback);
+        this.recheckTimeout = setInterval(seekedCallback, 250)
 
         if (!this.player.techGet('seeking') && this.isTimeFound()) {
             this.player.capture([this.previewWidth, this.previewHeight], callback);
-            this.player.off("seeked", seekedCallback);
+            //this.player.off("seeked", seekedCallback);
+            clearInterval(this.recheckTimeout);
         }
     },
-    
+
     calculatePreview: function(previewWidth, previewHeight){
         var newWidth, newHeight;
 
@@ -256,11 +261,21 @@ _V_.html5.prototype.extend({
         canvas.width  = width;
         canvas.height = height;
         var ctx = canvas.getContext('2d');
+        /*
         ctx.drawImage(video, 0, 0, width, height);
 
         var preview = canvas.toDataURL('image/jpeg');
 
         callback.call(this, preview);
+        */
+        setTimeout(
+            this.proxy(function() {
+                ctx.drawImage(video, 0, 0, width, height);
+                var preview = canvas.toDataURL('image/jpeg');
+                callback.call(this, preview);
+            }),
+            500
+        );
     },
 
     getVideoWidth: function() {
@@ -363,7 +378,7 @@ _V_.Player.prototype.extend({
             return this.videoHeight;
         }
     },
-    
+
     setVideoWidth: function(width) {
         this.videoWidth = width;
     },
