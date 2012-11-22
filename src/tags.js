@@ -370,6 +370,46 @@ _V_.Player.prototype.extend({
 
     setVideoHeight: function(height) {
         this.videoHeight = height;
+    },
+
+    // When fullscreen isn't supported we can stretch the video container to as wide as the browser will let us.
+    enterFullWindow: function(){
+        this.isFullWindow = true;
+
+        // Storing original doc overflow value to return to when fullscreen is off
+        this.docOrigOverflow = document.documentElement.style.overflow;
+
+        // Add listener for esc key to exit fullscreen
+        _V_.on(document, "keydown", _V_.proxy(this, this.fullWindowOnEscKey));
+
+        // Hide any scroll bars
+        document.documentElement.style.overflow = 'hidden';
+
+        // Apply fullscreen styles
+        _V_.addClass(document.body, "vjs-full-window");
+        _V_.addClass(this.el, "vjs-fullscreen");
+
+        this.origVideoParent = this.el.parentNode;
+        document.body.appendChild(this.el);
+
+        this.trigger("enterFullWindow");
+    },
+
+    exitFullWindow: function(){
+        this.isFullWindow = false;
+        _V_.removeEvent(document, "keydown", this.fullWindowOnEscKey);
+
+        // Unhide scroll bars.
+        document.documentElement.style.overflow = this.docOrigOverflow;
+
+        // Remove fullscreen styles
+        _V_.removeClass(document.body, "vjs-full-window");
+        _V_.removeClass(this.el, "vjs-fullscreen");
+
+        this.origVideoParent.appendChild(this.el);
+        // Resize the box, controller, and poster to original sizes
+        // this.positionAll();
+        this.trigger("exitFullWindow");
     }
 });
 
