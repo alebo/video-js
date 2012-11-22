@@ -494,6 +494,23 @@ _V_.PosterImageExt = _V_.PosterImage.extend({
   }
 });
 
+_V_.PlusButton = _V_.Button.extend({
+
+  buttonText: "Add",
+
+  init: function(player, options){
+    this._super(player, options);
+  },
+
+  buildCSSClass: function(){
+    return "vjs-plus-button-control " + this._super();
+  },
+
+  onClick: function(){
+    this.player.trigger("plusbuttonclick");
+  }
+});
+
 _V_.options.tag = {};
 _V_.options.tag.preview = {
     'width' : 200,

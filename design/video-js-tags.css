@@ -49,3 +49,7 @@
 .maxheight-maxwidth { max-height: 100%; max-width: 100%;}
 .maxheight-width { max-height: 100%; width: 100%; height: auto;}
 .maxwidth-height { max-width: 100%; height: 100%; width: auto;}
+
+/* Plus Button Icon */
+.vjs-default-skin .vjs-plus-button-control { width: 5em; cursor: pointer !important; }
+.vjs-default-skin .vjs-plus-button-control div { width: 17px; height: 17px; background: url('plus_button.png'); margin: 0.5em auto 0; }
