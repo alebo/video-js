@@ -55,7 +55,9 @@ _V_.Tag = _V_.Component.extend({
         this.player.currentTime(this.time);
 
         if (this.draggable) {
-            this.player.tagMoving = this;
+            //this.player.tagMoving = this;
+            this.player.mouseDownX = event.clientX;
+            this.player.mouseDownY = event.clientY;
 
             event.preventDefault();
             _V_.blockTextSelection();
@@ -69,7 +71,9 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseUp: function(event) {
-        this.player.tagMoving = false;
+        //this.player.tagMoving = false;
+        this.player.mouseDownX = 0;
+        this.player.mouseDownY = 0;
 
         if (this.draggable) {
             _V_.unblockTextSelection();
@@ -83,21 +87,23 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseMove: function(event){
+        if (Math.abs(event.clientX - this.player.mouseDownX) > 3 || Math.abs(event.clientY - this.player.mouseDownY) > 3) {
 
-        var newTime = this.calculateDistance(event) * this.player.duration();
+            var newTime = this.calculateDistance(event) * this.player.duration();
 
-        var bufferedTime = this.player.buffered().end(0);
-        if (bufferedTime < newTime) {
-            newTime = bufferedTime;
+            var bufferedTime = this.player.buffered().end(0);
+            if (bufferedTime < newTime) {
+                newTime = bufferedTime;
+            }
+
+            this.time = newTime;
+
+            this.updateTag();
         }
-
-        this.time = newTime;
-
-        this.updateTag();
     },
 
     onMouseOver: function(event){
-        if (!this.player.tagMoving) {
+        if (!this.player.mouseDownX && !this.player.mouseDownY) {
             var tooltip = this.el.firstChild;
             tooltip.style.visibility = 'visible';
         }
@@ -432,17 +438,11 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
     init: function(player, options) {
         this._super(player, options);
 
-    //this.player.on("controlsvisible", this.proxy(this.updateTags));
-    /*
-        this.player.on("tagchange", this.proxy(function(e){
-            this.player.tagMoving = e.tag;
-            this.updateTags(e.tag.time);
-            this.player.tagMoving = false;
-        }));
-        */
+        this.player.mouseDownX = 0;
+        this.player.mouseDownY = 0;
     },
 
-    onMouseDown: function(event){
+    /*onMouseDown: function(event){
         event.preventDefault();
         _V_.blockTextSelection();
 
@@ -452,16 +452,20 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
         if (!this.player.tagMoving) {
             this.onMouseMove(event);
         }
-    }
-/*
-    update: function() {
-        this._super();
+    },*/
 
-        if (this.player.tagMoving) {
-            this.player.tagMoving.el.style.left = this.handle.el.style.left;
+    onMouseMove: function(event){
+        if (Math.abs(event.clientX - this.player.mouseDownX) > 3 || Math.abs(event.clientY - this.player.mouseDownY) > 3) {
+
+            var newTime = this.calculateDistance(event) * this.player.duration();
+
+            // Don't let video end while scrubbing.
+            if (newTime == this.player.duration()) { newTime = newTime - 0.1; }
+
+            // Set new time (tell player to seek to new time)
+            this.player.currentTime(newTime);
         }
     }
-*/
 });
 
 _V_.PosterImageExt = _V_.PosterImage.extend({
