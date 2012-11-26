@@ -410,8 +410,10 @@ _V_.Player.prototype.extend({
         _V_.addClass(document.body, "vjs-full-window");
         _V_.addClass(this.el, "vjs-fullscreen");
 
-        this.origVideoParent = this.el.parentNode;
-        document.body.appendChild(this.el);
+        if (this.moveToBody) {
+            this.origVideoParent = this.el.parentNode;
+            document.body.appendChild(this.el);
+        }
 
         this.trigger("enterFullWindow");
     },
@@ -427,7 +429,9 @@ _V_.Player.prototype.extend({
         _V_.removeClass(document.body, "vjs-full-window");
         _V_.removeClass(this.el, "vjs-fullscreen");
 
-        this.origVideoParent.appendChild(this.el);
+        if (this.moveToBody) {
+            this.origVideoParent.appendChild(this.el);
+        }
         // Resize the box, controller, and poster to original sizes
         // this.positionAll();
         this.trigger("exitFullWindow");
