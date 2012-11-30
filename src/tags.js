@@ -435,6 +435,63 @@ _V_.Player.prototype.extend({
         // Resize the box, controller, and poster to original sizes
         // this.positionAll();
         this.trigger("exitFullWindow");
+    },
+
+    src: function(source){
+        // Case: Array of source objects to choose from and pick the best to play
+        if (source instanceof Array) {
+
+          var sourceTech = this.selectSource(source),
+              source,
+              techName;
+
+          if (sourceTech) {
+              source = sourceTech.source;
+              techName = sourceTech.tech;
+
+            // If this technology is already loaded, set source
+            if (techName == this.techName) {
+              this.src(source); // Passing the source object
+
+            // Otherwise load this technology with chosen source
+            } else {
+              this.loadTech(techName, source);
+            }
+          } else {
+            _V_.log("No compatible source and playback technology were found.")
+            throw "No compatible source and playback technology were found.";
+          }
+
+        // Case: Source object { src: "", type: "" ... }
+        } else if (source instanceof Object) {
+
+          if (_V_[this.techName].canPlaySource(source)) {
+            this.src(source.src);
+          } else {
+            // Send through tech loop to check for a compatible technology.
+            this.src([source]);
+          }
+
+        // Case: URL String (http://myvideo...)
+        } else {
+          // Cache for getting last set source
+          this.values.src = source;
+
+          if (!this.isReady) {
+            this.ready(function(){
+              this.src(source);
+            });
+          } else {
+            this.techCall("src", source);
+            if (this.options.preload == "auto") {
+              this.load();
+            }
+            if (this.options.autoplay) {
+              this.play();
+            }
+          }
+        }
+        return this;
     }
 });
 
@@ -518,6 +575,25 @@ _V_.PlusButton = _V_.Button.extend({
     this.player.trigger("plusbuttonclick");
   }
 });
+
+_V_.ControlBarExt = _V_.ControlBar.extend({
+
+  init: function(player, options){
+    this._super(player, options);
+
+    player.one("play", this.proxy(function(){
+      this.fadeIn();
+      var fadeEvents = this.player.options.fadeEvents;
+      this.player.on(fadeEvents['fadeIn'], this.proxy(this.fadeIn));
+      this.player.on(fadeEvents['fadeOut'], this.proxy(this.fadeOut));
+    }));
+  }
+});
+
+_V_.options.fadeEvents = {
+  'fadeIn' : 'mouseover',
+  'fadeOut' : 'mouseout'
+}
 
 _V_.options.tag = {};
 _V_.options.tag.preview = {
