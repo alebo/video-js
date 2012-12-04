@@ -52,12 +52,14 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseDown: function(event){
+        this.player.pause();
         this.player.currentTime(this.time);
 
         if (this.draggable) {
             //this.player.tagMoving = this;
             this.player.mouseDownX = event.clientX;
             this.player.mouseDownY = event.clientY;
+            this.mouseDownTime = this.time;
 
             event.preventDefault();
             _V_.blockTextSelection();
@@ -80,7 +82,9 @@ _V_.Tag = _V_.Component.extend({
             _V_.off(document, "mousemove", this.onMouseMove, false);
             _V_.off(document, "mouseup", this.onMouseUp, false);
 
-            this.update();
+            if (this.mouseDownTime != this.time) {
+                this.update();
+            }
         } else {
             event.stopPropagation();
         }
@@ -98,6 +102,7 @@ _V_.Tag = _V_.Component.extend({
 
             this.time = newTime;
 
+            this.onMouseOut(); //hide tooltip
             this.updateTag();
         }
     },
@@ -280,7 +285,7 @@ _V_.html5.prototype.extend({
                 var preview = canvas.toDataURL('image/jpeg');
                 callback.call(this, preview);
             }),
-            500
+            750
         );
     },
 
