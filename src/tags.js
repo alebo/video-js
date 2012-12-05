@@ -159,7 +159,7 @@ _V_.Tag = _V_.Component.extend({
             this.player.pause();
 
             var tooltip = this.el.firstChild;
-            tooltip.firstChild.src = '';
+            tooltip.firstChild.style.visibility = 'hidden';
             _V_.addClass(tooltip, "loading");
             this.preview = '';
 
@@ -168,6 +168,7 @@ _V_.Tag = _V_.Component.extend({
                     //var tooltip = this.el.firstChild;
                     this.preview = preview;
                     tooltip.firstChild.src = preview;
+                    tooltip.firstChild.style.visibility = 'visible';
                     _V_.removeClass(tooltip, "loading");
 
                     this.player.triggerEvent(new _V_.Event('tagchanged', {
@@ -598,6 +599,15 @@ _V_.ControlBarExt = _V_.ControlBar.extend({
     player.one("play", this.proxy(function(){
       this.fadeIn();
       var fadeEvents = this.player.options.fadeEvents;
+
+      //workaround for IE8
+      if ('mouseover' != fadeEvents['fadeIn']) {
+        this.player.off("mouseover", this.proxy(this.fadeIn));
+      }
+      if ('mouseout' != fadeEvents['fadeOut']) {
+        this.player.off("mouseout", this.proxy(this.fadeOut));
+      }
+
       this.player.on(fadeEvents['fadeIn'], this.proxy(this.fadeIn));
       this.player.on(fadeEvents['fadeOut'], this.proxy(this.fadeOut));
     }));
