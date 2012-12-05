@@ -95,10 +95,10 @@ _V_.Tag = _V_.Component.extend({
 
             var newTime = this.calculateDistance(event) * this.player.duration();
 
-            var bufferedTime = this.player.buffered().end(0);
+            /*var bufferedTime = this.player.buffered().end(0);
             if (bufferedTime < newTime) {
                 newTime = bufferedTime;
-            }
+            }*/
 
             this.time = newTime;
 
@@ -157,9 +157,14 @@ _V_.Tag = _V_.Component.extend({
         if (this.draggable) {
             this.player.currentTime(this.time);
             this.player.pause();
+
+            var tooltip = this.el.firstChild;
+            tooltip.firstChild.src = '';
+            this.preview = '';
+
             this.updatePreview(
                 this.proxy(function(preview) {
-                    var tooltip = this.el.firstChild;
+                    //var tooltip = this.el.firstChild;
                     this.preview = preview;
                     tooltip.firstChild.src = preview;
 
@@ -212,6 +217,8 @@ _V_.Tag = _V_.Component.extend({
         handle.el.style.left = _V_.round((adjustedProgress - tagHandleDiffPercent / 2) * 100, 2) + "%";
 
     //console.log(((progress - handlePercent / 2)  * 100)  + "%");
+
+        this.player.controlBar.progressControl.seekBar.update();
     },
 
     updatePreview: function(callback) {
