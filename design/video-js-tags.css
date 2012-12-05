@@ -28,6 +28,14 @@
     left: 88px;
     top: -88px;
     width: 100px;
+    height: 100%;
+    border: 2px solid #B8B8B8;
+    background-color: #B8B8B8;
+}
+
+.loading {
+    background: url('ajax-loader.gif') no-repeat center;
+    background-color: #B8B8B8;
 }
 
 .vjs-tag-handle:hover .tooltip

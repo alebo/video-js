@@ -15,9 +15,9 @@ _V_.Tag = _V_.Component.extend({
         var previewTop = previewSize[1] + 5;
         var previewLeft = previewSize[0] / 2 - 12;
 
-        innerHTML = "<span class='tooltip' style='top:-" + previewTop + "px; left:-" + previewLeft + "px;'>" +
+        innerHTML = "<div class='tooltip' style='top:-" + previewTop + "px; left:-" + previewLeft + "px;'>" +
         "<img src='" + preview + "' style='max-width:" + previewSize[0] + "px; max-height=" + previewSize[1] + "px;' />" +
-        "</span>";
+        "</div>";
 
         return this._super("div", {
             className: className,
@@ -160,6 +160,7 @@ _V_.Tag = _V_.Component.extend({
 
             var tooltip = this.el.firstChild;
             tooltip.firstChild.src = '';
+            _V_.addClass(tooltip, "loading");
             this.preview = '';
 
             this.updatePreview(
@@ -167,6 +168,7 @@ _V_.Tag = _V_.Component.extend({
                     //var tooltip = this.el.firstChild;
                     this.preview = preview;
                     tooltip.firstChild.src = preview;
+                    _V_.removeClass(tooltip, "loading");
 
                     this.player.triggerEvent(new _V_.Event('tagchanged', {
                         tag: this
