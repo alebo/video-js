@@ -81,7 +81,9 @@ _V_.Tag = _V_.Component.extend({
             _V_.unblockTextSelection();
             _V_.off(document, "mousemove", this.onMouseMove, false);
             _V_.off(document, "mouseup", this.onMouseUp, false);
-            this.time = this.player.currentTime();
+            if (!this.isTimeFound()) {
+                this.time = this.player.currentTime();
+            }
             if (this.mouseDownTime != this.time) {
 
                 this.update();
