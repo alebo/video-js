@@ -81,8 +81,9 @@ _V_.Tag = _V_.Component.extend({
             _V_.unblockTextSelection();
             _V_.off(document, "mousemove", this.onMouseMove, false);
             _V_.off(document, "mouseup", this.onMouseUp, false);
-
+            this.time = this.player.currentTime();
             if (this.mouseDownTime != this.time) {
+
                 this.update();
             }
         } else {
@@ -155,8 +156,10 @@ _V_.Tag = _V_.Component.extend({
         this.updateTag();
 
         if (this.draggable) {
-            this.player.currentTime(this.time);
-            this.player.pause();
+            if (this.player.values.lastSetCurrentTime != this.time) {
+                this.player.currentTime(this.time);
+                this.player.pause();
+            }
 
             var tooltip = this.el.firstChild;
             tooltip.firstChild.style.visibility = 'hidden';
@@ -219,28 +222,39 @@ _V_.Tag = _V_.Component.extend({
         //handle.el.style.left = ((progress - handlePercent / 2)  * 100)  + "%";
         handle.el.style.left = _V_.round((adjustedProgress - tagHandleDiffPercent / 2) * 100, 2) + "%";
 
-    //console.log(((progress - handlePercent / 2)  * 100)  + "%");
+        //console.log(((progress - handlePercent / 2)  * 100)  + "%");
 
-        this.player.controlBar.progressControl.seekBar.update();
+        //this.player.controlBar.progressControl.seekBar.update();
     },
 
     updatePreview: function(callback) {
         var seekedCallback = this.proxy(function() {
             if (this.isTimeFound()) {
                 this.player.capture([this.previewWidth, this.previewHeight], callback);
-                //this.player.off("seeked", arguments.callee);
-                clearInterval(this.recheckTimeout);
+                this.player.off("seeked", arguments.callee);
                 this.player.trigger("timeupdate");
+                if (this.recheckTimeout) {
+                    clearInterval(this.recheckTimeout);
+                    this.recheckTimeout = false;
+                }
+            } else if (!this.recheckTimeout) {
+                this.recheckTimeout = setInterval(seekedCallback, 250);
             }
         });
 
-        //this.player.on("seeked", seekedCallback);
-        this.recheckTimeout = setInterval(seekedCallback, 250)
+        if (this.recheckTimeout) {
+            clearInterval(this.recheckTimeout);
+            this.recheckTimeout = false;
+        }
+        this.player.on("seeked", seekedCallback);
 
         if (!this.player.techGet('seeking') && this.isTimeFound()) {
             this.player.capture([this.previewWidth, this.previewHeight], callback);
-            //this.player.off("seeked", seekedCallback);
-            clearInterval(this.recheckTimeout);
+            this.player.off("seeked", seekedCallback);
+            if (this.recheckTimeout) {
+                clearInterval(this.recheckTimeout);
+                this.recheckTimeout = false;
+            }
         }
     },
 
