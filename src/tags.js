@@ -168,7 +168,7 @@ _V_.Tag = _V_.Component.extend({
                     //var tooltip = this.el.firstChild;
                     this.preview = preview;
                     tooltip.firstChild.src = preview;
-                    tooltip.firstChild.style.visibility = 'visible';
+                    tooltip.firstChild.style.visibility = 'inherit';
                     _V_.removeClass(tooltip, "loading");
 
                     this.player.triggerEvent(new _V_.Event('tagchanged', {
