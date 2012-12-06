@@ -15,8 +15,8 @@ _V_.Tag = _V_.Component.extend({
         var previewTop = previewSize[1] + 5;
         var previewLeft = previewSize[0] / 2 - 12;
 
-        innerHTML = "<div class='tooltip' style='top:-" + previewTop + "px; left:-" + previewLeft + "px;'>" +
-        "<img src='" + preview + "' style='max-width:" + previewSize[0] + "px; max-height=" + previewSize[1] + "px;' />" +
+        innerHTML = "<div class='tooltip' style='width:" + previewSize[0] + "px; height:" + previewSize[1] + "px; top:-" + previewTop + "px; left:-" + previewLeft + "px;'>" +
+        "<img src='" + preview + "' style='max-width:" + previewSize[0] + "px; max-height:" + previewSize[1] + "px;' />" +
         "</div>";
 
         return this._super("div", {

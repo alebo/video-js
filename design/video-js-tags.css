@@ -27,9 +27,9 @@
     position: relative;
     left: 88px;
     top: -88px;
-    width: 100px;
-    height: 100%;
-    border: 2px solid #B8B8B8;
+    width: 200px;
+    height: 150px;
+    border: 1px solid #B8B8B8;
     background-color: #B8B8B8;
 }
 
