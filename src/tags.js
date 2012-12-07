@@ -39,7 +39,12 @@ _V_.Tag = _V_.Component.extend({
             this.previewHeight = previewSize[1];
         }
 
-        this.player.on("controlsvisible", this.proxy(this.updateTag)); //fullscreen position bug
+        this.player.on("controlsvisible", this.proxy(this.updatePosition)); //fullscreen position bug
+        if (this.draggable) {
+            this.player.on("tagchanging", this.proxy(this.onTagChanging));
+            this.player.on("tagmoving", this.proxy(this.onTagChanging));
+            this.player.on("tagchanged", this.proxy(this.onTagChanged));
+        }
 
         this.on("mousedown", this.onMouseDown);
         this.on("mouseover", this.onMouseOver);
@@ -48,10 +53,16 @@ _V_.Tag = _V_.Component.extend({
     },
 
     remove: function(){
-        this.player.off("controlsvisible", this.proxy(this.updateTag, this.id));
+        this.player.off("controlsvisible", this.proxy(this.updatePosition, this.id));
     },
 
     onMouseDown: function(event){
+
+        if (this.player.tagChanging) {
+            event.stopPropagation();
+            return false;
+        }
+
         this.player.pause();
         this.player.currentTime(this.time);
 
@@ -67,6 +78,7 @@ _V_.Tag = _V_.Component.extend({
             _V_.on(document, "mousemove", _V_.proxy(this, this.onMouseMove));
             _V_.on(document, "mouseup", _V_.proxy(this, this.onMouseUp));
 
+
         } else {
             event.stopPropagation();
         }
@@ -81,6 +93,12 @@ _V_.Tag = _V_.Component.extend({
             _V_.unblockTextSelection();
             _V_.off(document, "mousemove", this.onMouseMove, false);
             _V_.off(document, "mouseup", this.onMouseUp, false);
+
+            this.player.triggerEvent(new _V_.Event('tagmoved', {
+                tag: this
+            }));
+            this.moving = false;
+
             if (!this.isTimeFound()) {
                 this.time = this.player.currentTime();
             }
@@ -96,17 +114,28 @@ _V_.Tag = _V_.Component.extend({
     onMouseMove: function(event){
         if (Math.abs(event.clientX - this.player.mouseDownX) > 3 || Math.abs(event.clientY - this.player.mouseDownY) > 3) {
 
+            this.setLoading();
+            if (!this.moving) {
+                this.player.triggerEvent(new _V_.Event('tagmoving', {
+                    tag: this
+                }));
+                this.moving = true;
+            }
+
             var newTime = this.calculateDistance(event) * this.player.duration();
 
-            /*var bufferedTime = this.player.buffered().end(0);
-            if (bufferedTime < newTime) {
-                newTime = bufferedTime;
-            }*/
+            if ('flash' == this.player.techName) {
+                var bufferedTime = this.player.buffered().end(0);
+                if (bufferedTime < newTime) {
+                    newTime = bufferedTime;
+                }
+            }
 
             this.time = newTime;
 
             this.onMouseOut(); //hide tooltip
-            this.updateTag();
+
+            this.updatePosition();
         }
     },
 
@@ -118,8 +147,10 @@ _V_.Tag = _V_.Component.extend({
     },
 
     onMouseOut: function(event){
-        var tooltip = this.el.firstChild;
-        tooltip.style.visibility = 'hidden';
+        if (!this.player.capturing && !this.player.previewLoading) {
+            var tooltip = this.el.firstChild;
+            tooltip.style.visibility = 'hidden';
+        }
     },
 
     onDblClick: function(event){
@@ -150,12 +181,54 @@ _V_.Tag = _V_.Component.extend({
         return Math.max(0, Math.min(1, (event.pageX - boxX) / boxW));
     },
 
-    update: function() {
-        this.player.triggerEvent(new _V_.Event('tagchanging', {
+    setLoading: function() {
+        var tooltip = this.el.firstChild;
+        tooltip.firstChild.style.visibility = 'hidden';
+        _V_.addClass(tooltip, "loading");
+        this.preview = '';
+    },
+
+    setPreview: function(preview) {
+        var tooltip = this.el.firstChild;
+        this.preview = preview;
+        tooltip.firstChild.src = preview;
+        tooltip.firstChild.style.visibility = 'inherit';
+        _V_.removeClass(tooltip, "loading");
+    },
+
+    onTagChanging: function(params) {
+        if (this != params.tag) {
+            this.removeClass('draggable');
+            this.addClass('undraggable');
+        }
+    },
+
+    onTagChanged: function(params) {
+        if (this != params.tag) {
+            this.removeClass('undraggable');
+            this.addClass('draggable');
+        }
+    },
+
+    startChanging: function() {
+        if (!this.player.tagChanging) {
+            this.player.tagChanging = true;
+            this.player.triggerEvent(new _V_.Event('tagchanging', {
+                tag: this
+            }));
+        }
+    },
+
+    endChanging: function() {
+        this.player.triggerEvent(new _V_.Event('tagchanged', {
             tag: this
         }));
+        this.player.tagChanging = false;
+    },
 
-        this.updateTag();
+    update: function() {
+        this.startChanging();
+        this.updatePosition();
 
         if (this.draggable) {
             if (this.player.values.lastSetCurrentTime != this.time) {
@@ -163,32 +236,21 @@ _V_.Tag = _V_.Component.extend({
                 this.player.pause();
             }
 
-            var tooltip = this.el.firstChild;
-            tooltip.firstChild.style.visibility = 'hidden';
-            _V_.addClass(tooltip, "loading");
-            this.preview = '';
+            this.setLoading();
 
             this.updatePreview(
                 this.proxy(function(preview) {
-                    //var tooltip = this.el.firstChild;
-                    this.preview = preview;
-                    tooltip.firstChild.src = preview;
-                    tooltip.firstChild.style.visibility = 'inherit';
-                    _V_.removeClass(tooltip, "loading");
-
-                    this.player.triggerEvent(new _V_.Event('tagchanged', {
-                        tag: this
-                    }));
+                    this.setPreview(preview);
+                    this.endChanging();
                 })
             );
         } else {
-            this.player.triggerEvent(new _V_.Event('tagchanged', {
-                tag: this
-            }));
+            this.endChanging();
         }
     },
 
-    updateTag: function() {
+    updatePosition: function() {
+
         var handle = this;
 
         if (this.time > this.player.duration()) {
@@ -280,13 +342,14 @@ _V_.Tag = _V_.Component.extend({
         return [newWidth, newHeight];
     },
 
-    isTimeFound: function(){
+    isTimeFound: function() {
         return (0.01 > Math.abs(this.player.currentTime() - this.time));
     }
 });
 
 _V_.html5.prototype.extend({
     capture: function(arguments) {
+
         var size = arguments[0];
         var callback = arguments[1];
 
@@ -311,7 +374,7 @@ _V_.html5.prototype.extend({
                 var preview = canvas.toDataURL('image/jpeg');
                 callback.call(this, preview);
             }),
-            750
+            this.player.options.captureDelay
         );
     },
 
@@ -334,7 +397,8 @@ _V_.flash.prototype.extend({
                 var preview = 'data:image/jpeg;base64,' + this.el.vjs_capture(size[0], size[1]);
                 callback.call(this, preview);
             }),
-            1000
+            // for flash the delay cannot be reduced :(
+            this.player.options.captureDelay > 1000 ? this.player.options.captureDelay : 1000
         );
 
     },
@@ -571,9 +635,22 @@ _V_.TaggableSeekBar = _V_.SeekBar.extend({
     },*/
 
     onMouseMove: function(event){
+
+        if (this.player.tagChanging) {
+            event.stopPropagation();
+            return false;
+        }
+
         if (Math.abs(event.clientX - this.player.mouseDownX) > 3 || Math.abs(event.clientY - this.player.mouseDownY) > 3) {
 
             var newTime = this.calculateDistance(event) * this.player.duration();
+
+            if ('flash' == this.player.techName) {
+                var bufferedTime = this.player.buffered().end(0);
+                if (bufferedTime < newTime) {
+                    newTime = bufferedTime;
+                }
+            }
 
             // Don't let video end while scrubbing.
             if (newTime == this.player.duration()) { newTime = newTime - 0.1; }
@@ -664,5 +741,7 @@ _V_.options.tag.preview = {
     'width' : 200,
     'height' : 150
 };
+
+_V_.options.captureDelay = 750;
 
 VideoJS.tags = {};
