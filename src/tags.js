@@ -589,28 +589,16 @@ _V_.Player.prototype.extend({
         return this;
     },
 
-    onPlay: function(){
-        if (this.endedPlay){
-            this.currentTime(0);
-            this.endedPlay = false;
-        }
-        _V_.removeClass(this.el, "vjs-paused");
-        _V_.addClass(this.el, "vjs-playing");
-    },
-
     onEnded: function(){
         if (this.options.loop) {
           this.currentTime(0);
           this.play();
         } else {
           this.pause();
-          this.trigger('pause');
-          this.endedPlay = true;
+          //workaround for IE8
+          this.currentTime(0);
+          this.pause();
         }
-    },
-
-    paused: function(){
-        return ((this.techGet("paused") === false) && !this.endedPlay) ? false : true;
     }
 });
 
